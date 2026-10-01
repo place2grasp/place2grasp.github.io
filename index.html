@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Place2Grasp</title>
+<meta name="description" content="Place2Grasp: equivariant local graspability fields for generalizable scene-wide object placement.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column with wide figure rows; sections follow the pipeline from problem to results. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #17202c;
+  --muted: #5a6473;
+  --line: #dde1e7;
+  --goal: #b4237a;        /* magenta goal placements, as in the renders */
+  --grasp: #2a5fbf;       /* blue = grasp survives */
+  --blocked: #c99a06;     /* yellow = grasp blocked */
+  --wood: #a8713d;        /* bin wood */
+  --goal-soft: #b4237a14;
+  --font-display: "Newsreader", "Times New Roman", Georgia, serif;
+  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --col: 46rem;
+  --wide: 68rem;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b; --surface: #181d25; --ink: #e6e9ee; --muted: #9aa3b1; --line: #2a313c;
+    --goal: #e45aa8; --grasp: #6f9ef0; --blocked: #e2b93b; --wood: #c99566; --goal-soft: #e45aa81f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b; --surface: #181d25; --ink: #e6e9ee; --muted: #9aa3b1; --line: #2a313c;
+  --goal: #e45aa8; --grasp: #6f9ef0; --blocked: #e2b93b; --wood: #c99566; --goal-soft: #e45aa81f;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 1.0625rem/1.65 var(--font-body);
+  padding-inline: 1rem;
+}
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--grasp); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--goal); outline-offset: 3px; border-radius: 4px; }
+
+.col { max-width: var(--col); margin-inline: auto; }
+.wide { max-width: var(--wide); margin-inline: auto; }
+
+h1, h2, h3 { font-family: var(--font-display); font-weight: 500; text-wrap: balance; margin: 0; }
+h2 { font-size: clamp(1.6rem, 3vw, 2.1rem); line-height: 1.2; }
+h3 { font-size: 1.25rem; line-height: 1.3; }
+p { margin: 0; max-width: 65ch; }
+.eyebrow {
+  font: 500 0.75rem/1 var(--font-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+}
+.nm { font-variant: small-caps; letter-spacing: 0.04em; font-weight: 600; }
+
+/* draft banner: remove before release */
+.draft {
+  max-width: var(--wide); margin: 1rem auto 0; padding: 0.55rem 0.9rem; border: 1px dashed var(--blocked);
+  border-radius: 6px; font-size: 0.85rem; color: var(--muted);
+}
+
+/* hero */
+header.hero { padding-block: 3.5rem 2rem; display: grid; gap: 1.25rem; text-align: center; justify-items: center; }
+header.hero h1 { font-size: clamp(2rem, 5.2vw, 3.4rem); line-height: 1.08; max-width: 22ch; }
+header.hero h1 .sub { display: block; font-size: 0.5em; line-height: 1.3; color: var(--muted); margin-top: 0.6rem; font-style: italic; }
+.authors { font-size: 1rem; color: var(--muted); }
+.links { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; }
+.btn {
+  display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 1rem; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none;
+  font: 500 0.92rem/1 var(--font-body);
+}
+.btn[aria-disabled="true"] { color: var(--muted); cursor: default; }
+.btn small { font-size: 0.72rem; color: var(--muted); }
+
+/* video slots */
+.vslot {
+  position: relative; aspect-ratio: 16 / 9; width: 100%; max-width: 100%; border-radius: 10px;
+  border: 1.5px dashed var(--line); background: var(--surface);
+  display: grid; place-content: center; text-align: center; gap: 0.35rem; color: var(--muted); padding: 1rem;
+}
+.vslot strong { color: var(--ink); font-weight: 500; }
+.vslot video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+
+section { padding-block: 3.5rem; border-top: 1px solid var(--line); display: grid; gap: 1.5rem; }
+.lead { display: grid; gap: 0.9rem; }
+.lead p { color: var(--ink); }
+.cap { font-size: 0.9rem; color: var(--muted); line-height: 1.5; max-width: 70ch; }
+
+
+/* figure grids */
+.grid { display: grid; gap: 0.9rem; }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 760px) { .g4, .g3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+figure { margin: 0; display: grid; gap: 0.45rem; min-width: 0; }
+.method-video { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+figure img { border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+figcaption { font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
+figcaption b { color: var(--ink); font-weight: 500; }
+.tag { font: 500 0.7rem/1 var(--font-data); padding: 0.2rem 0.4rem; border-radius: 4px; margin-right: 0.35rem; vertical-align: 0.1em; }
+.tag.blk { color: var(--blocked); border: 1px solid var(--blocked); }
+.tag.ok { color: var(--grasp); border: 1px solid var(--grasp); }
+.legend { display: flex; flex-wrap: wrap; gap: 1.25rem; font-size: 0.85rem; color: var(--muted); }
+.legend i { display: inline-block; width: 1.4rem; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 0.4rem; }
+
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 2rem; align-items: start; }
+@media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
+
+/* tables */
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 0.55rem 0.7rem; text-align: right; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font: 500 0.75rem/1.2 var(--font-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); }
+td { font-family: var(--font-data); font-size: 0.84rem; border-bottom: 1px solid var(--line); }
+td:first-child { font-family: var(--font-body); font-size: 0.9rem; }
+tbody tr:last-child td { border-bottom: 0; }
+td .pm { color: var(--muted); font-size: 0.75rem; }
+tr.ours td { background: var(--goal-soft); }
+td.best { font-weight: 500; color: var(--goal); }
+th.pool, td.pool { border-left: 1px solid var(--line); }
+.tblhead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.5rem 1.5rem; }
+
+/* key numbers */
+.nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.num { padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); display: grid; gap: 0.35rem; }
+.num .v { font: 500 1.6rem/1.1 var(--font-data); }
+.num .v em { font-style: normal; color: var(--goal); }
+.num .k { font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
+@media (max-width: 760px) { .nums { grid-template-columns: 1fr; } }
+
+.ro-group { display: grid; gap: 0.6rem; }
+.ro-card { margin: 0; display: grid; gap: 0.4rem; min-width: 0; }
+.ro-card video { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 8px; border: 1px solid var(--line); background: #fff; aspect-ratio: 16 / 9; }
+.ro-meta { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.85rem; color: var(--muted); }
+.ro-meta b { color: var(--ink); font-weight: 500; }
+.ro-held { font: 500 0.72rem/1 var(--font-data); padding: 0.2rem 0.4rem; border-radius: 4px; border: 1px solid currentColor; }
+.ro-held.ok { color: var(--grasp); }
+.rl-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.rl-tab { font: 500 0.88rem/1 var(--font-body); padding: 0.5rem 0.9rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.rl-tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.rl-grid video { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 8px; border: 1px solid var(--line); background: #000; aspect-ratio: 16 / 9; }
+.rl-grid figure { position: relative; }
+.rl-speed { position: absolute; top: 0.4rem; right: 0.4rem; font: 500 0.7rem/1 var(--font-data); padding: 0.2rem 0.35rem; border-radius: 4px; background: rgba(0, 0, 0, 0.55); color: #fff; }
+@media (max-width: 760px) { .rl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+pre.bib {
+  margin: 0; padding: 1rem 1.1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  font: 0.82rem/1.55 var(--font-data); overflow-x: auto; color: var(--ink);
+}
+footer { padding-block: 2.5rem 3rem; border-top: 1px solid var(--line); text-align: center; color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<header class="hero wide">
+  <span class="eyebrow">Anonymous submission</span>
+  <h1><span class="nm">Place2Grasp</span><span class="sub">Equivariant local graspability fields for generalizable scene-wide object placement</span></h1>
+  <div class="authors">Anonymous authors &middot; Under review</div>
+  <nav class="links" aria-label="Resources">
+    <a class="btn" aria-disabled="true">Paper <small>soon</small></a>
+    <a class="btn" aria-disabled="true">Code <small>soon</small></a>
+  </nav>
+</header>
+
+<main>
+<section class="wide" id="execution">
+  <figure>
+    <video class="method-video" autoplay muted loop playsinline preload="auto" aria-label="Place2Grasp overview animation">
+      <source src="videos/execution.mp4" type="video/mp4">
+    </video>
+    <figcaption><b><span class="nm">Place2Grasp</span> selects where an object becomes graspable, then executes the placement and grasp.</b> <b>Observe:</b> a box resting in a bin cannot be grasped directly because the environment blocks otherwise valid grasps. <b>Perceive:</b> the object and environment are observed as segmented point clouds, and the environment is divided into local patches centered at scene anchors. <b>Propose and select:</b> a shared local field generates full SE(3) placement candidates at each anchor, and a learned selector ranks them by settling feasibility and resulting graspability. <b>Execute:</b> a non-prehensile policy moves the object to the selected placement, and a pretrained grasp generator executes the final grasp.</figcaption>
+  </figure>
+</section>
+
+<section class="col" id="abstract">
+  <span class="eyebrow">Abstract</span>
+  <div class="lead">
+    <p>Grasping an object in real-world environments requires reasoning about both the grasps afforded by the object geometry and the subset of those grasps that the environment leaves accessible. When the object's current placement blocks otherwise valid grasps, the robot must determine where in the environment it should be placed to make those grasps accessible. Existing approaches either reason about graspability without modeling environment geometry, leave placement selection implicit within an end-to-end policy, or restrict reconfiguration to a prescribed action space.</p>
+    <p>We present <span class="nm">Place2Grasp</span>, which learns a local, bi-equivariant field that generates explicit full-SE(3) object-placement goals conditioned on the local scene geometry. A learned selector ranks the candidates by whether they settle stably and by the graspability of the resulting configuration. We evaluate the method on an object benchmark that varies difficult resting placements within a fixed bin and an environment benchmark that transfers matched wall-adjacent placements across multiple environments.</p>
+    <p>In simulation, our method achieves the highest overall held rate on both benchmarks, improving over direct grasping by 55.6% and 55.1%, respectively, and outperforming the compared pre-grasp approaches. Further experiments validate locality and equivariance and demonstrate transfer of the simulation-trained model to a physical robot.</p>
+  </div>
+  <div class="nums">
+    <div class="num"><span class="v">.573 &rarr; <em>.891</em></span><span class="k">Object benchmark held rate, direct grasping vs. <span class="nm">Place2Grasp</span> (+55.6%).</span></div>
+    <div class="num"><span class="v">.481 &rarr; <em>.746</em></span><span class="k">Environment benchmark held rate (+55.1%).</span></div>
+    <div class="num"><span class="v"><em>48</em>/50</span><span class="k">Physical trials, simulation-trained model, no real-world fine-tuning.</span></div>
+  </div>
+</section>
+
+<section class="wide" id="field">
+  <div class="col lead" style="margin-inline:0">
+    <span class="eyebrow">Graspability field</span>
+    <h2>Graspability depends jointly on the object and its local surroundings</h2>
+  </div>
+  <figure>
+    <img src="assets/paper_fig2_field.webp" alt="Four panels: object-centric grasps, the same grasps blocked or available in four environments, rotating and translating a mug to expose grasps, and local structures applied across scenes" loading="lazy">
+    <figcaption><b>Object-centric:</b> candidate grasps are predicted from the object alone, without the scene. <b>Environment-aware:</b> the same grasps evaluated against a wall, in a corner, at an open edge and on a ridge; blue grasps remain accessible, yellow ones are blocked. <b>Graspability field:</b> from the same placement, full SE(3) placement rotates, translates, or does both to expose blocked grasps. <b>Local to scene-wide:</b> the field learns placements around six local structures (center, wall, corner, edge, ramp, ridge) and is applied across local anchors in scenes with different global layouts.</figcaption>
+  </figure>
+</section>
+
+<section class="wide" id="method">
+  <div class="col lead" style="margin-inline:0">
+    <span class="eyebrow">Method</span>
+    <h2>Local placement generation and scene-wide selection</h2>
+  </div>
+  <figure>
+    <video class="method-video" autoplay muted loop playsinline preload="auto" aria-label="Method animation">
+      <source src="videos/method_training.mp4" type="video/mp4">
+    </video>
+    <figcaption><b>(a) Generator.</b> Separate equivariant point transformers encode the observed object and a local scene crop into object and environment tokens. During diffusion, the noisy placement transforms the object tokens, which attend to nearby environment tokens before an equivariant score head predicts the denoising update; training uses higher-graspability target placements. <b>(b) Selector.</b> Using the frozen encoders, the selector evaluates each generated candidate after transforming the object tokens to the proposed placement, and ranks candidates by settling feasibility and post-settling graspability. <b>(c) Equivariant point transformer.</b> Each point cloud is divided into local patches; EquiformerV3 blocks aggregate point features at each patch center, then exchange information between nearby centers.</figcaption>
+  </figure>
+</section>
+
+<section class="wide" id="dataset">
+  <div class="col lead" style="margin-inline:0">
+    <span class="eyebrow">Dataset</span>
+    <h2>Objects and environments</h2>
+    <p>3.66M scored grasps across 316 DexGraspNet meshes, 253,836 labeled placements, and 169,590 low-to-high-graspability placement transitions organized by local scene feature.</p>
+  </div>
+  <figure>
+    <img src="assets/paper_data_figure.webp" alt="Grid of training objects and unseen objects colored by shape family, beside the four training scenes and four unseen fixtures" loading="lazy">
+    <figcaption><b>Left:</b> examples of the training objects from DexGraspNet. <b>Middle:</b> unseen objects from MetaGraspNet, used only for evaluation. Colors mark shape families: box (blue), flat (orange), cylinder (green), rod (red), sphere (purple), open container (brown) and irregular (cyan); objects are shown at a uniform size, not to scale. <b>Right:</b> the four training scenes, a closed bin and bins with an open edge, a ramp and a ridge (top), and examples of unseen fixtures (bottom).</figcaption>
+  </figure>
+</section>
+
+<section class="wide" id="results">
+  <div class="col lead" style="margin-inline:0">
+    <span class="eyebrow">Results</span>
+    <h2>Held rate on the object and environment benchmarks</h2>
+    <p class="cap">Object benchmark: 113 objects at their ten lowest-graspability placements in a closed bin. Environment benchmark: 56 objects at three wall-adjacent placements across four scenes. A trial succeeds if the object stays held through a 12&nbsp;cm lift, transfer and wrist roll. Mean over three seeds, &plusmn; SEM where shown; highlighted entries are best within SEM.</p>
+  </div>
+  <div class="tbl">
+    <table>
+      <thead>
+        <tr><th></th><th colspan="8" style="text-align:center">Object benchmark</th><th colspan="5" class="pool" style="text-align:center">Environment benchmark</th></tr>
+        <tr><th>Method</th><th>Box</th><th>Cyl.</th><th>Rod</th><th>Flat</th><th>Irreg.</th><th>Open</th><th>Sph.</th><th>Overall</th><th class="pool">Bin</th><th>Edge</th><th>Ramp</th><th>Ridge</th><th>Overall</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>GG (direct grasp)</td><td>.471</td><td>.493</td><td>.638</td><td>.552</td><td>.638</td><td>.683</td><td>.547</td><td>.573<span class="pm"> ±.013</span></td><td class="pool">.383<span class="pm"> ±.004</span></td><td>.556<span class="pm"> ±.016</span></td><td>.577<span class="pm"> ±.021</span></td><td>.407<span class="pm"> ±.012</span></td><td>.481<span class="pm"> ±.003</span></td></tr>
+        <tr><td>GOMP</td><td>.710</td><td>.872</td><td>.867</td><td class="best">.922</td><td>.903</td><td>.852</td><td>.893</td><td>.861<span class="pm"> ±.006</span></td><td class="pool">.409<span class="pm"> ±.009</span></td><td>.571<span class="pm"> ±.012</span></td><td>.552<span class="pm"> ±.007</span></td><td>.448<span class="pm"> ±.014</span></td><td>.495<span class="pm"> ±.006</span></td></tr>
+        <tr><td>OmniReset</td><td>.479</td><td>.800</td><td>.771</td><td>.748</td><td>.813</td><td>.783</td><td>.887</td><td>.751<span class="pm"> ±.004</span></td><td class="pool">.377<span class="pm"> ±.009</span></td><td>.589<span class="pm"> ±.021</span></td><td>.565<span class="pm"> ±.000</span></td><td>.444<span class="pm"> ±.015</span></td><td>.494<span class="pm"> ±.006</span></td></tr>
+        <tr><td>PreAfford-Or</td><td>.665</td><td>.800</td><td>.829</td><td>.763</td><td>.815</td><td>.867</td><td class="best">.927</td><td>.802<span class="pm"> ±.004</span></td><td class="pool">.562<span class="pm"> ±.015</span></td><td>.688<span class="pm"> ±.004</span></td><td class="best">.714<span class="pm"> ±.016</span></td><td class="best">.599<span class="pm"> ±.005</span></td><td>.641<span class="pm"> ±.007</span></td></tr>
+        <tr class="ours"><td><span class="nm">Place2Grasp</span> (ours)</td><td class="best">.800</td><td class="best">.900</td><td class="best">.962</td><td>.893</td><td class="best">.927</td><td class="best">.895</td><td>.890</td><td class="best">.891<span class="pm"> ±.003</span></td><td class="pool best">.833<span class="pm"> ±.021</span></td><td class="best">.827<span class="pm"> ±.009</span></td><td class="best">.712<span class="pm"> ±.012</span></td><td class="best">.609<span class="pm"> ±.037</span></td><td class="best">.746<span class="pm"> ±.006</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="cap">GOMP uses a policy trained with object-centric graspability; OmniReset learns reorientation end to end; both are retrained on our objects and environments. PreAfford-Or samples 32 collision-free horizontal pushes, executes them as ideal forces and keeps the best result. Every method ends with the same final grasp stage.</p>
+
+</section>
+
+<section class="wide" id="generalization">
+  <div class="col lead" style="margin-inline:0">
+    <span class="eyebrow">Locality and generalization</span>
+    <h2>Local conditioning holds across scenes, and placements transfer to unseen objects and environments</h2>
+  </div>
+  <figure>
+    <img src="assets/paper_generalization_strip.webp" alt="Three radar charts: locality across scene contexts, held rate on held-out objects by family, held rate on held-out fixtures" loading="lazy">
+    <figcaption><b>(a) Locality.</b> A ridge and a ramp are held fixed while the surrounding scene changes. The radius shows the EMD between placement sets across contexts, normalized by a split-half sampling floor, on a reversed logarithmic scale; the black ring marks the floor. <span class="nm">Place2Grasp</span> and footprint-only crops stay at or outside the ring, while a wide-context model reaches 8.8&times; the floor. <b>(b, c) Held-out objects and environments.</b> Direct placement, initial placement (blue) vs. selected placement (orange), for 48 unseen objects and nine unseen fixtures. Top-1 held rate rises from 38.2% to 93.5% on unseen objects and from 31.5% to 70.8% on unseen environments.</figcaption>
+  </figure>
+</section>
+
+<section class="wide" id="real">
+  <div class="col lead" style="margin-inline:0">
+    <span class="eyebrow">Physical robot</span>
+    <h2>Simulation-trained, deployed on a real robot</h2>
+    <p>The simulation-trained model is deployed without real-world fine-tuning in a physical bin with three enclosed sides and one open edge. Five everyday objects, ten varied initial placements each; a trial succeeds when the system reconfigures the object to its selected placement and completes the grasp.</p>
+  </div>
+  <div class="tbl" style="max-width:34rem">
+    <table>
+      <thead><tr><th>Object</th><th>Box</th><th>Tape</th><th>Bottle</th><th>Stapler</th><th>Spoon</th></tr></thead>
+      <tbody><tr class="ours"><td>Success</td><td>8/10</td><td>10/10</td><td>10/10</td><td>10/10</td><td>10/10</td></tr></tbody>
+    </table>
+  </div>
+  <h3>Recorded runs</h3>
+  <div class="rl-tabs" role="tablist" aria-label="Object"></div>
+  <div class="grid g3 rl-grid"></div>
+  <p class="cap">Ten runs per object, played at 2&times; speed with most planning pauses cut. The table above reports the per-object outcomes.</p>
+</section>
+
+<section class="wide" id="rollouts">
+  <div class="col lead" style="margin-inline:0">
+    <span class="eyebrow">Rollouts</span>
+    <h2>Simulation rollouts</h2>
+    <p class="cap">Single attempt from a hard starting placement: reorient, then grasp, lift, carry and roll the wrist. The green ghost marks the selected placement.</p>
+  </div>
+  <div class="ro-group" id="ro-ours-train"><span class="eyebrow">Training scenes</span><div class="grid g4 ro-grid"></div></div>
+  <div class="ro-group" id="ro-ours-ood"><span class="eyebrow">Unseen fixtures &middot; placement by teleport</span><div class="grid g4 ro-grid"></div></div>
+  <noscript><p class="cap">The rollout gallery needs JavaScript.</p></noscript>
+</section>
+
+<section class="col" id="citation">
+  <span class="eyebrow">Citation</span>
+  <pre class="bib">@article{anonymous2026place2grasp,
+  title     = {Place2Grasp: Equivariant Local Graspability Fields for
+               Generalizable Scene-Wide Object Placement},
+  author    = {Anonymous},
+  journal   = {Under review},
+  year      = {2026}
+}</pre>
+</section>
+</main>
+
+<footer>Anonymous project page for double-blind review.</footer>
+
+<script>
+// Working method name: change here to rename everywhere on the page.
+const METHOD_NAME = "Place2Grasp";
+document.querySelectorAll(".nm").forEach(el => { el.textContent = METHOD_NAME; });
+</script>
+<script src="real.js"></script>
+<script>
+// Physical-robot runs: one tab per object (clips already 2x), loaded only when visible.
+(function () {
+  const R = window.REAL || {};
+  const NAME = { box: "Box", tape: "Tape", bottle: "Bottle", stapler: "Stapler", spoon: "Spoon" };
+  const tabs = document.querySelector(".rl-tabs"), grid = document.querySelector(".rl-grid");
+  if (!tabs || !Object.keys(R).length) return;
+  const lazy = new IntersectionObserver((es) => es.forEach((e) => {
+    const v = e.target;
+    if (e.isIntersecting) { if (!v.src) v.src = v.dataset.src; v.play().catch(() => {}); } else { v.pause(); }
+  }), { rootMargin: "200px" });
+  const show = (o) => {
+    tabs.querySelectorAll(".rl-tab").forEach((b) => b.setAttribute("aria-selected", b.dataset.o === o));
+    grid.querySelectorAll("video").forEach((v) => lazy.unobserve(v));
+    grid.innerHTML = R[o].map((c, i) => `<figure><video muted loop playsinline preload="none" poster="${c.poster}" data-src="${c.src}" aria-label="${NAME[o]} run ${i + 1}"></video><span class="rl-speed">2&times;</span></figure>`).join("");
+    grid.querySelectorAll("video").forEach((v) => lazy.observe(v));
+  };
+  tabs.innerHTML = Object.keys(R).map((o) => `<button class="rl-tab" role="tab" data-o="${o}" aria-selected="false">${NAME[o] || o} <small>(${R[o].length})</small></button>`).join("");
+  tabs.addEventListener("click", (e) => { const b = e.target.closest(".rl-tab"); if (b) show(b.dataset.o); });
+  show(Object.keys(R)[0]);
+})();
+</script>
+<script src="rollouts.js"></script>
+<script>
+// Rollout gallery (ours only for now): text-free clips, labels from rollouts.js.
+(function () {
+  const R = window.ROLLOUTS || [];
+  const NAME = { bin: "Bin", edge: "Edge", ramp: "Ramp", ridge: "Ridge", composite_a: "Composite A", composite_b: "Composite B",
+    counter_bs: "Counter", dish_rack_lg: "Dish rack", drainboard_lg: "Drainboard", flat_slab: "Flat slab",
+    organizer_lg: "Organizer", shelf_cubby: "Shelf cubby", sink_slabw: "Sink" };
+  const held = () => `<span class="ro-held ok">HELD</span>`;
+  const vid = (r) => `<video muted loop playsinline preload="none" poster="${r.poster}" data-src="${r.src}" aria-label="${NAME[r.scene] || r.scene} rollout"></video>`;
+  const lazy = new IntersectionObserver((es) => es.forEach((e) => {
+    const v = e.target;
+    if (e.isIntersecting) { if (!v.src) v.src = v.dataset.src; v.play().catch(() => {}); } else { v.pause(); }
+  }), { rootMargin: "200px" });
+  const watch = (root) => root.querySelectorAll("video").forEach((v) => lazy.observe(v));
+  const card = (r) => `<figure class="ro-card">${vid(r)}<figcaption class="ro-meta"><b>${NAME[r.scene] || r.scene}</b>${held()}</figcaption></figure>`;
+  for (const [id, pick] of [["ro-ours-train", (r) => r.section === "ours" && NAME[r.scene] && ["bin", "edge", "ramp", "ridge"].includes(r.scene)],
+                            ["ro-ours-ood", (r) => r.section === "ours" && !["bin", "edge", "ramp", "ridge"].includes(r.scene)]]) {
+    const g = document.querySelector(`#${id} .ro-grid`);
+    g.innerHTML = R.filter(pick).map(card).join("");
+    watch(g);
+  }
+})();
+</script>
+</body>
+</html>
