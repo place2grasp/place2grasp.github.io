@@ -20,6 +20,7 @@
   --goal: #b4237a;        /* magenta goal placements, as in the renders */
   --grasp: #2a5fbf;       /* blue = grasp survives */
   --blocked: #c99a06;     /* yellow = grasp blocked */
+  --fail: #cd2823;        /* red = direct grasp / failed run */
   --wood: #a8713d;        /* bin wood */
   --goal-soft: #b4237a14;
   --font-display: "Newsreader", "Times New Roman", Georgia, serif;
@@ -32,13 +33,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #11151b; --surface: #181d25; --ink: #e6e9ee; --muted: #9aa3b1; --line: #2a313c;
-    --goal: #e45aa8; --grasp: #6f9ef0; --blocked: #e2b93b; --wood: #c99566; --goal-soft: #e45aa81f;
+    --goal: #e45aa8; --grasp: #6f9ef0; --blocked: #e2b93b; --wood: #c99566; --goal-soft: #e45aa81f; --fail: #ef6b63;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #11151b; --surface: #181d25; --ink: #e6e9ee; --muted: #9aa3b1; --line: #2a313c;
-  --goal: #e45aa8; --grasp: #6f9ef0; --blocked: #e2b93b; --wood: #c99566; --goal-soft: #e45aa81f;
+  --goal: #e45aa8; --grasp: #6f9ef0; --blocked: #e2b93b; --wood: #c99566; --goal-soft: #e45aa81f; --fail: #ef6b63;
   color-scheme: dark;
 }
 
@@ -108,6 +109,12 @@ section { padding-block: 3.5rem; border-top: 1px solid var(--line); display: gri
 @media (max-width: 760px) { .g4, .g3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 figure { margin: 0; display: grid; gap: 0.45rem; min-width: 0; }
 .method-video { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+.step { cursor: pointer; border-radius: 3px; transition: color 0.3s, background-color 0.3s; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+figcaption.following .step { color: var(--muted); }
+figcaption.following .step.on { color: var(--ink); background: var(--goal-soft); }
+.stepbar { display: flex; align-items: center; gap: 0.35rem; margin-top: 0.45rem; font: 500 0.8rem/1 var(--font-data); color: var(--muted); }
+.stepbar button { font: inherit; width: 2rem; height: 1.8rem; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.stepno { margin-left: 0.4rem; }
 figure img { border-radius: 8px; border: 1px solid var(--line); background: #fff; }
 figcaption { font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
 figcaption b { color: var(--ink); font-weight: 500; }
@@ -155,13 +162,36 @@ th.pool, td.pool { border-left: 1px solid var(--line); }
 .rl-tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .rl-grid video { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 8px; border: 1px solid var(--line); background: #000; aspect-ratio: 16 / 9; }
 .rl-grid figure { position: relative; }
-.rl-speed { position: absolute; top: 0.4rem; right: 0.4rem; font: 500 0.7rem/1 var(--font-data); padding: 0.2rem 0.35rem; border-radius: 4px; background: rgba(0, 0, 0, 0.55); color: #fff; }
-@media (max-width: 760px) { .rl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ab-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
+.ab-win { position: relative; border: 4px solid var(--fail); border-radius: 14px; overflow: hidden; background: #000; }
+.ab-win.ours { border-color: var(--grasp); }
+.ab-win video { width: 100%; height: auto; display: block; aspect-ratio: 16 / 9; }
+.x-badge { position: absolute; top: 0.4rem; right: 0.4rem; width: 1.6rem; height: 1.6rem; border-radius: 50%; border: 2px solid #fff; background: #cd2823; color: #fff; font: 700 0.85rem/1.4rem var(--font-body); text-align: center; transform: scale(0); transition: transform 0.25s; }
+.x-badge.on { transform: scale(1); }
+.ab-lab .d { color: var(--fail); font-weight: 500; }
+.ab-lab .o { color: var(--grasp); font-weight: 500; }
+@media (max-width: 760px) { .rl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } #ro-ours-train .g2 { grid-template-columns: 1fr; } }
 pre.bib {
   margin: 0; padding: 1rem 1.1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
   font: 0.82rem/1.55 var(--font-data); overflow-x: auto; color: var(--ink);
 }
 footer { padding-block: 2.5rem 3rem; border-top: 1px solid var(--line); text-align: center; color: var(--muted); font-size: 0.85rem; }
+
+/* page outline: sticky left column on wide screens, slim top bar otherwise */
+.toc { position: sticky; top: 0; z-index: 5; display: flex; gap: 0.2rem 1rem; overflow-x: auto; white-space: nowrap;
+  margin-inline: -1rem; padding: 0.55rem 1rem; background: var(--bg); border-bottom: 1px solid var(--line); font-size: 0.82rem; }
+.toc a { color: var(--muted); text-decoration: none; }
+.toc a.sub { display: none; }
+.toc a.on { color: var(--ink); font-weight: 600; }
+html { scroll-padding-top: 3rem; }
+@media (min-width: 1480px) {
+  .toc { position: fixed; top: 5rem; left: max(1rem, calc((100vw - var(--wide)) / 2 - 14rem)); width: 11.5rem; margin: 0;
+    flex-direction: column; white-space: normal; overflow: visible; padding: 0; border: 0; background: none; font-size: 0.85rem; }
+  .toc a { padding: 0.25rem 0 0.25rem 0.75rem; border-left: 2px solid var(--line); }
+  .toc a.sub { display: block; padding-left: 1.5rem; font-size: 0.8rem; }
+  .toc a.on { border-left-color: var(--goal); }
+  html { scroll-padding-top: 1rem; }
+}
 </style>
 </head>
 <body>
@@ -176,13 +206,37 @@ footer { padding-block: 2.5rem 3rem; border-top: 1px solid var(--line); text-ali
   </nav>
 </header>
 
+<nav class="toc" aria-label="On this page">
+  <a href="#execution" data-s="execution">Overview</a>
+  <a href="#video" data-s="video">Video</a>
+  <a href="#abstract" data-s="abstract">Abstract</a>
+  <a href="#real" data-s="real">Real robot</a>
+  <a href="#rollouts" data-s="rollouts">Simulation rollouts</a>
+  <a class="sub" href="#ro-ours-train" data-s="rollouts">Direct grasp vs. ours</a>
+  <a class="sub" href="#ro-ours-ood" data-s="rollouts">Unseen fixtures</a>
+  <a href="#field" data-s="field">Graspability field</a>
+  <a href="#method" data-s="method">Method</a>
+  <a href="#dataset" data-s="dataset">Dataset</a>
+  <a href="#results" data-s="results">Results</a>
+  <a href="#generalization" data-s="generalization">Generalization</a>
+  <a href="#citation" data-s="citation">Citation</a>
+</nav>
 <main>
 <section class="wide" id="execution">
   <figure>
-    <video class="method-video" autoplay muted loop playsinline preload="auto" aria-label="Place2Grasp overview animation">
+    <video class="method-video stepped" muted playsinline preload="auto" data-segs="0 3.7 5.2 6.0 7.1 8.8 12.0" aria-label="Place2Grasp overview animation">
       <source src="videos/execution_v2.mp4" type="video/mp4">
     </video>
-    <figcaption><b><span class="nm">Place2Grasp</span> generates and selects grasp-improving placement subgoals.</b> <b>Observe:</b> a box resting in a bin cannot be grasped directly because the surrounding environment blocks its grasps. <b><span class="nm">Place2Grasp</span>:</b> the environment is divided into local patches around anchors, and the local graspability field generates candidate placement subgoals over full SE(3) at each anchor; the selector ranks them by placement stability and resulting graspability and selects the highest-ranked subgoal. <b>Execute:</b> a non-prehensile policy moves the object to the selected subgoal, after which a pretrained grasp generator proposes the final grasp, which the robot executes.</figcaption>
+    <figcaption><b><span class="nm">Place2Grasp</span> generates and selects grasp-improving placement subgoals.</b> <span class="step" data-t="0 3.7"><b>Observe:</b> a box resting in a bin cannot be grasped directly because the surrounding environment blocks its grasps.</span> <span class="step" data-t="3.8 5.2"><b><span class="nm">Place2Grasp</span>:</b> the environment is divided into local patches around anchors,</span> <span class="step" data-t="5.2 6.0">and the local graspability field generates candidate placement subgoals over full SE(3) at each anchor;</span> <span class="step" data-t="6.0 7.1">the selector ranks them by placement stability and resulting graspability and selects the highest-ranked subgoal.</span> <span class="step" data-t="7.2 8.8"><b>Execute:</b> a non-prehensile policy moves the object to the selected subgoal,</span> <span class="step" data-t="8.8 12.1">after which a pretrained grasp generator proposes the final grasp, which the robot executes.</span></figcaption>
+  </figure>
+</section>
+
+<section class="wide" id="video">
+  <figure>
+    <video class="method-video" controls playsinline preload="none" poster="videos/presentation.jpg" aria-label="Narrated presentation video">
+      <source src="videos/presentation.mp4" type="video/mp4">
+    </video>
+    <figcaption><b>Presentation video</b> (4 min, narrated): problem, method, simulation benchmarks, unseen environments and real-robot results.</figcaption>
   </figure>
 </section>
 
@@ -198,6 +252,35 @@ footer { padding-block: 2.5rem 3rem; border-top: 1px solid var(--line); text-ali
     <div class="num"><span class="v">.481 &rarr; <em>.746</em></span><span class="k">Scene&ndash;Geometry Benchmark held rate (+26.5 pp).</span></div>
     <div class="num"><span class="v"><em>48</em>/50</span><span class="k">Physical trials, simulation-trained model, no real-world fine-tuning.</span></div>
   </div>
+</section>
+
+<section class="wide" id="real">
+  <div class="col lead" style="margin-inline:0">
+    <span class="eyebrow">Physical robot</span>
+    <h2>Simulation-trained, deployed on a real robot</h2>
+    <p>The simulation-trained model is deployed without real-world fine-tuning in a physical bin with three enclosed sides and one open edge. Five everyday objects, ten varied initial placements each, chosen so that the grasp generator finds no collision-free grasp candidates. A trial succeeds when the system moves the object to its selected placement subgoal and then grasps and lifts it.</p>
+  </div>
+  <div class="tbl" style="max-width:34rem">
+    <table>
+      <thead><tr><th>Object</th><th>Box</th><th>Tape</th><th>Bottle</th><th>Stapler</th><th>Spoon</th></tr></thead>
+      <tbody><tr class="ours"><td>Success</td><td>8/10</td><td>10/10</td><td>10/10</td><td>10/10</td><td>10/10</td></tr></tbody>
+    </table>
+  </div>
+  <h3>Recorded runs</h3>
+  <div class="rl-tabs" role="tablist" aria-label="Object"></div>
+  <div class="grid g3 rl-grid"></div>
+  <p class="cap">Ten runs per object, played in step: each run's push, return to the start pose and grasp are stretched to a common length, so the clips are sped up and not real time. A red &#x2715; marks the two failed box runs.</p>
+</section>
+
+<section class="wide" id="rollouts">
+  <div class="col lead" style="margin-inline:0">
+    <span class="eyebrow">Rollouts</span>
+    <h2>Simulation rollouts</h2>
+    <p class="cap">Single attempt from a hard starting placement: reorient, then grasp, lift, carry and roll the wrist. The green ghost marks the selected placement. On the training scenes, grasping directly at the start pose (red, &#x2715; once it fails) is shown next to <span class="nm">Place2Grasp</span> (blue) with the same grasp module. Clips in a group play in step and are sped up.</p>
+  </div>
+  <div class="ro-group" id="ro-ours-train"><span class="eyebrow">Training scenes &middot; direct grasp vs. <span class="nm">Place2Grasp</span></span><div class="grid g2 ro-grid"></div></div>
+  <div class="ro-group" id="ro-ours-ood"><span class="eyebrow">Unseen fixtures &middot; placement by teleport</span><div class="grid g4 ro-grid"></div></div>
+  <noscript><p class="cap">The rollout gallery needs JavaScript.</p></noscript>
 </section>
 
 <section class="wide" id="field">
@@ -217,10 +300,10 @@ footer { padding-block: 2.5rem 3rem; border-top: 1px solid var(--line); text-ali
     <h2>Local placement candidates, scene-wide subgoal selection</h2>
   </div>
   <figure>
-    <video class="method-video" autoplay muted loop playsinline preload="auto" aria-label="Method animation">
+    <video class="method-video stepped" muted playsinline preload="auto" data-segs="0 3.6 4.3 4.8 6.4 7.5 8.4 13.1 16.1 21.2" aria-label="Method animation">
       <source src="videos/method_training_v2.mp4" type="video/mp4">
     </video>
-    <figcaption><b>(a) Generator.</b> Separate equivariant point transformers encode the observed object and a local scene crop into object and environment tokens. During diffusion, the noisy placement transforms the object tokens, which attend to nearby environment tokens before an equivariant score head predicts the denoising update; training uses higher-graspability target placements. <b>(b) Selector.</b> Using the frozen encoders, the selector evaluates each generated candidate after transforming the object tokens to the proposed placement, and ranks candidates by placement stability and resulting graspability; the highest-scoring candidate becomes the placement subgoal. <b>(c) Equivariant point transformer.</b> Each point cloud is divided into local patches; EquiformerV3 blocks aggregate point features at each patch center, then exchange information between nearby centers.</figcaption>
+    <figcaption><span class="step" data-t="0 3.6 7.5 8.4"><b>(a) Generator.</b> Separate equivariant point transformers encode the observed object and a local scene crop into object and environment tokens.</span> <span class="step" data-t="8.4 13.1">During diffusion, the noisy placement transforms the object tokens, which attend to nearby environment tokens before an equivariant score head predicts the denoising update; training uses higher-graspability target placements.</span> <span class="step" data-t="13.2 16.1"><b>(b) Selector.</b> Using the frozen encoders, the selector evaluates each generated candidate after transforming the object tokens to the proposed placement,</span> <span class="step" data-t="16.1 21.3">and ranks candidates by placement stability and resulting graspability; the highest-scoring candidate becomes the placement subgoal.</span> <span class="step" data-t="3.6 4.3"><b>(c) Equivariant point transformer (EPT).</b> The point cloud is split into local patches around centres chosen by farthest-point sampling.</span> <span class="step" data-t="4.3 4.8">Each point is embedded from its surface normal; scene points also carry the gravity direction and a boundary score that is high at edges. An SO(3)-equivariant linear layer lifts these vectors and scalars into features that rotate with the input.</span> <span class="step" data-t="4.8 6.4">An EquiformerV3 attention block then pools the points around each centre into one token per patch.</span> <span class="step" data-t="6.4 7.5">Two more EquiformerV3 blocks exchange information between nearby patch centres, so each token also describes its surroundings. Every step is equivariant, so the tokens move and rotate with the point cloud.</span></figcaption>
   </figure>
 </section>
 
@@ -272,35 +355,6 @@ footer { padding-block: 2.5rem 3rem; border-top: 1px solid var(--line); text-ali
   </figure>
 </section>
 
-<section class="wide" id="real">
-  <div class="col lead" style="margin-inline:0">
-    <span class="eyebrow">Physical robot</span>
-    <h2>Simulation-trained, deployed on a real robot</h2>
-    <p>The simulation-trained model is deployed without real-world fine-tuning in a physical bin with three enclosed sides and one open edge. Five everyday objects, ten varied initial placements each, chosen so that the grasp generator finds no collision-free grasp candidates. A trial succeeds when the system moves the object to its selected placement subgoal and then grasps and lifts it.</p>
-  </div>
-  <div class="tbl" style="max-width:34rem">
-    <table>
-      <thead><tr><th>Object</th><th>Box</th><th>Tape</th><th>Bottle</th><th>Stapler</th><th>Spoon</th></tr></thead>
-      <tbody><tr class="ours"><td>Success</td><td>8/10</td><td>10/10</td><td>10/10</td><td>10/10</td><td>10/10</td></tr></tbody>
-    </table>
-  </div>
-  <h3>Recorded runs</h3>
-  <div class="rl-tabs" role="tablist" aria-label="Object"></div>
-  <div class="grid g3 rl-grid"></div>
-  <p class="cap">Ten runs per object, played at 2&times; speed with most planning pauses cut. The table above reports the per-object outcomes.</p>
-</section>
-
-<section class="wide" id="rollouts">
-  <div class="col lead" style="margin-inline:0">
-    <span class="eyebrow">Rollouts</span>
-    <h2>Simulation rollouts</h2>
-    <p class="cap">Single attempt from a hard starting placement: reorient, then grasp, lift, carry and roll the wrist. The green ghost marks the selected placement.</p>
-  </div>
-  <div class="ro-group" id="ro-ours-train"><span class="eyebrow">Training scenes</span><div class="grid g4 ro-grid"></div></div>
-  <div class="ro-group" id="ro-ours-ood"><span class="eyebrow">Unseen fixtures &middot; placement by teleport</span><div class="grid g4 ro-grid"></div></div>
-  <noscript><p class="cap">The rollout gallery needs JavaScript.</p></noscript>
-</section>
-
 <section class="col" id="citation">
   <span class="eyebrow">Citation</span>
   <pre class="bib">@article{anonymous2026place2grasp,
@@ -320,51 +374,125 @@ footer { padding-block: 2.5rem 3rem; border-top: 1px solid var(--line); text-ali
 const METHOD_NAME = "Place2Grasp";
 document.querySelectorAll(".nm").forEach(el => { el.textContent = METHOD_NAME; });
 </script>
-<script src="real.js"></script>
 <script>
-// Physical-robot runs: one tab per object (clips already 2x), loaded only when visible.
+// Stepped animations, to read along: each step plays slowly, then holds on its last frame long enough to read the
+// highlighted caption text. Controls: prev / pause / next; clicking a caption step jumps to it.
+document.querySelectorAll("video.stepped").forEach((v) => {
+  const RATE = 0.5, WPS = 4, MIN_HOLD = 2.5, MAX_HOLD = 9;
+  const fig = v.closest("figure"), cap = fig.querySelector("figcaption");
+  const spans = [...cap.querySelectorAll(".step")].map((el) => [el, el.dataset.t.split(" ").map(Number)]);   // [a0 b0 a1 b1 ...]
+  const inside = (r, t) => r.some((a, i) => i % 2 === 0 && t >= a && t < r[i + 1]);
+  const segs = v.dataset.segs.split(" ").map(Number);                 // step boundaries in video time
+  const n = segs.length - 1;
+  const bar = document.createElement("div");
+  bar.className = "stepbar";
+  bar.innerHTML = `<button data-a="prev" aria-label="Previous step">&#x23EE;</button><button data-a="pause" aria-label="Pause">&#x23F8;</button>` +
+    `<button data-a="next" aria-label="Next step">&#x23ED;</button><span class="stepno"></span>`;
+  v.after(bar);
+  const no = bar.querySelector(".stepno"), pb = bar.querySelector('[data-a="pause"]');
+  let k = 0, timer = null, user = false, holding = false;
+  const lit = (t) => spans.filter(([, r]) => inside(r, t));
+  const mark = (t) => { spans.forEach(([el]) => el.classList.remove("on")); lit(t).forEach(([el]) => el.classList.add("on")); };
+  const show = () => { no.textContent = `Step ${k + 1} of ${n}`; pb.innerHTML = user ? "&#x25B6;" : "&#x23F8;"; };
+  const run = () => { holding = false; v.playbackRate = RATE; v.play().catch(() => {}); };
+  const go = (i) => {                                                  // start step i (wraps)
+    clearTimeout(timer); k = (i + n) % n; v.currentTime = segs[k]; mark(segs[k] + 0.01); show();
+    if (!user) run(); else v.pause();
+  };
+  const hold = () => {                                                 // end of step k: read, then next step
+    v.pause(); holding = true;
+    const words = lit(segs[k + 1] - 0.05).reduce((c, [el]) => c + el.textContent.split(/\s+/).length, 0);
+    timer = setTimeout(() => go(k + 1), 1000 * Math.min(MAX_HOLD, Math.max(MIN_HOLD, words / WPS)));
+  };
+  const tick = () => {
+    if (v.paused) return;
+    if (v.currentTime >= segs[k + 1] - 0.03 || v.ended) { hold(); return; }
+    mark(v.currentTime);
+    requestAnimationFrame(tick);
+  };
+  v.addEventListener("play", () => { cap.classList.add("following"); requestAnimationFrame(tick); });
+  v.addEventListener("ended", () => { if (!holding) hold(); });
+  bar.addEventListener("click", (e) => {
+    const a = e.target.closest("button")?.dataset.a;
+    if (a === "prev") go(k - 1);
+    if (a === "next") go(k + 1);
+    if (a === "pause") { user = !user; clearTimeout(timer); show(); user ? v.pause() : (holding ? go(k + 1) : run()); }
+  });
+  spans.forEach(([el, r]) => el.addEventListener("click", () => go(Math.max(0, segs.findIndex((x, i) => i < n && r[0] < segs[i + 1])))));
+  new IntersectionObserver(([e]) => {
+    if (!e.isIntersecting) { clearTimeout(timer); v.pause(); return; }
+    if (!user && v.paused) holding ? hold() : (v.currentTime ? run() : go(0));
+  }, { threshold: 0.4 }).observe(v);
+  show();
+});
+</script>
+<script src="synced.js"></script>
+<script>
+// Synced galleries: every video in a grid loads, starts and restarts together (clips are pre-aligned to one length).
+function syncGroup(root, onTime) {
+  const vs = [...root.querySelectorAll("video")];
+  let started = false, ended = 0;
+  const start = () => vs.forEach((v) => { v.currentTime = 0; v.play().catch(() => {}); });
+  vs.forEach((v) => v.addEventListener("ended", () => { if (++ended === vs.length) { ended = 0; start(); } }));
+  if (onTime) vs[0].addEventListener("timeupdate", () => onTime(vs[0].currentTime));
+  const io = new IntersectionObserver(([e]) => {
+    if (!e.isIntersecting) { vs.forEach((v) => v.pause()); return; }
+    if (started) { vs.forEach((v) => v.play().catch(() => {})); return; }
+    started = true;
+    let ready = 0;
+    const go = () => { if (++ready === vs.length) start(); };   // all buffered -> start together
+    vs.forEach((v) => { v.addEventListener("canplaythrough", go, { once: true }); v.src = v.dataset.src; v.load(); });
+    setTimeout(() => { if (ready < vs.length) { ready = vs.length; start(); } }, 6000);   // slow network: start anyway
+  }, { rootMargin: "200px" });
+  io.observe(root);
+  return () => { io.disconnect(); vs.forEach((v) => v.pause()); };
+}
+const S = window.SYNCED || { real: {}, ab: [], fixtures: [] };
+const vid = (c, label) => `<video muted playsinline preload="none" poster="${c.poster}" data-src="${c.src}" aria-label="${label}"></video>`;
+
+// Physical-robot runs: one tab per object, all runs of the tab in step.
 (function () {
-  const R = window.REAL || {};
   const NAME = { box: "Box", tape: "Tape", bottle: "Bottle", stapler: "Stapler", spoon: "Spoon" };
   const tabs = document.querySelector(".rl-tabs"), grid = document.querySelector(".rl-grid");
-  if (!tabs || !Object.keys(R).length) return;
-  const lazy = new IntersectionObserver((es) => es.forEach((e) => {
-    const v = e.target;
-    if (e.isIntersecting) { if (!v.src) v.src = v.dataset.src; v.play().catch(() => {}); } else { v.pause(); }
-  }), { rootMargin: "200px" });
+  if (!tabs || !Object.keys(S.real).length) return;
+  let stop = null;
   const show = (o) => {
     tabs.querySelectorAll(".rl-tab").forEach((b) => b.setAttribute("aria-selected", b.dataset.o === o));
-    grid.querySelectorAll("video").forEach((v) => lazy.unobserve(v));
-    grid.innerHTML = R[o].map((c, i) => `<figure><video muted loop playsinline preload="none" poster="${c.poster}" data-src="${c.src}" aria-label="${NAME[o]} run ${i + 1}"></video><span class="rl-speed">2&times;</span></figure>`).join("");
-    grid.querySelectorAll("video").forEach((v) => lazy.observe(v));
+    if (stop) stop();
+    grid.innerHTML = S.real[o].map((c, i) => `<figure>${vid(c, `${NAME[o]} run ${i + 1}${c.held ? "" : " (failed)"}`)}` +
+      `${c.held ? "" : '<span class="x-badge" aria-hidden="true">&#x2715;</span>'}</figure>`).join("");
+    const fails = S.real[o].filter((c) => !c.held), badges = [...grid.querySelectorAll(".x-badge")];
+    stop = syncGroup(grid, fails.length ? (t) => badges.forEach((b, i) => b.classList.toggle("on", t >= fails[i].fail_s)) : null);
   };
-  tabs.innerHTML = Object.keys(R).map((o) => `<button class="rl-tab" role="tab" data-o="${o}" aria-selected="false">${NAME[o] || o} <small>(${R[o].length})</small></button>`).join("");
+  tabs.innerHTML = Object.keys(S.real).map((o) => `<button class="rl-tab" role="tab" data-o="${o}" aria-selected="false">${NAME[o] || o} <small>(${S.real[o].length})</small></button>`).join("");
   tabs.addEventListener("click", (e) => { const b = e.target.closest(".rl-tab"); if (b) show(b.dataset.o); });
-  show(Object.keys(R)[0]);
+  show(Object.keys(S.real)[0]);
 })();
-</script>
-<script src="rollouts.js"></script>
-<script>
-// Rollout gallery (ours only for now): text-free clips, labels from rollouts.js.
+
+// Simulation rollouts: direct grasp vs ours on the training scenes; ours on the unseen fixtures.
 (function () {
-  const R = window.ROLLOUTS || [];
   const NAME = { bin: "Bin", edge: "Edge", ramp: "Ramp", ridge: "Ridge", composite_a: "Composite A", composite_b: "Composite B",
     counter_bs: "Counter", dish_rack_lg: "Dish rack", drainboard_lg: "Drainboard", flat_slab: "Flat slab",
     organizer_lg: "Organizer", shelf_cubby: "Shelf cubby", sink_slabw: "Sink" };
-  const held = () => `<span class="ro-held ok">HELD</span>`;
-  const vid = (r) => `<video muted loop playsinline preload="none" poster="${r.poster}" data-src="${r.src}" aria-label="${NAME[r.scene] || r.scene} rollout"></video>`;
-  const lazy = new IntersectionObserver((es) => es.forEach((e) => {
-    const v = e.target;
-    if (e.isIntersecting) { if (!v.src) v.src = v.dataset.src; v.play().catch(() => {}); } else { v.pause(); }
-  }), { rootMargin: "200px" });
-  const watch = (root) => root.querySelectorAll("video").forEach((v) => lazy.observe(v));
-  const card = (r) => `<figure class="ro-card">${vid(r)}<figcaption class="ro-meta"><b>${NAME[r.scene] || r.scene}</b>${held()}</figcaption></figure>`;
-  for (const [id, pick] of [["ro-ours-train", (r) => r.section === "ours" && NAME[r.scene] && ["bin", "edge", "ramp", "ridge"].includes(r.scene)],
-                            ["ro-ours-ood", (r) => r.section === "ours" && !["bin", "edge", "ramp", "ridge"].includes(r.scene)]]) {
-    const g = document.querySelector(`#${id} .ro-grid`);
-    g.innerHTML = R.filter(pick).map(card).join("");
-    watch(g);
-  }
+  const ab = document.querySelector("#ro-ours-train .ro-grid"), fx = document.querySelector("#ro-ours-ood .ro-grid");
+  ab.innerHTML = S.ab.map((r) => `<figure class="ro-card"><div class="ab-pair">
+      <div class="ab-win direct">${vid(r.direct, `${NAME[r.scene]}: direct grasp`)}<span class="x-badge" aria-hidden="true">&#x2715;</span></div>
+      <div class="ab-win ours">${vid(r.ours, `${NAME[r.scene]}: Place2Grasp`)}</div></div>
+    <figcaption class="ro-meta"><b>${NAME[r.scene]}</b><span class="ab-lab"><span class="d">Direct grasp</span> | <span class="o">${METHOD_NAME}</span></span></figcaption></figure>`).join("");
+  const badges = [...ab.querySelectorAll(".x-badge")];
+  syncGroup(ab, (t) => badges.forEach((b, i) => b.classList.toggle("on", t >= S.ab[i].fail_s)));
+  fx.innerHTML = S.fixtures.map((r) => `<figure class="ro-card">${vid(r, `${NAME[r.scene]} rollout`)}<figcaption class="ro-meta"><b>${NAME[r.scene] || r.scene}</b><span class="ro-held ok">HELD</span></figcaption></figure>`).join("");
+  syncGroup(fx);
+})();
+</script>
+<script>
+// Page outline: highlight the section in view.
+(function () {
+  const links = [...document.querySelectorAll(".toc a")];
+  const io = new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting) links.forEach((a) => a.classList.toggle("on", a.dataset.s === e.target.id && !a.classList.contains("sub")));
+  }), { rootMargin: "-30% 0px -60% 0px" });
+  document.querySelectorAll("main > section").forEach((sec) => io.observe(sec));
 })();
 </script>
 </body>
